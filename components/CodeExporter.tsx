@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ProjectBundle } from '../types';
 
 interface Props {
@@ -8,7 +8,12 @@ interface Props {
 
 const CodeExporter: React.FC<Props> = ({ bundle }) => {
   const [copied, setCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState<'ino' | 'platformio' | 'workflow'>('ino');
+  const [activeTab, setActiveTab] = useState<'readme' | 'ino' | 'platformio' | 'workflow'>('readme');
+
+  useEffect(() => {
+    // Reset to readme tab when a new bundle is generated
+    setActiveTab('readme');
+  }, [bundle]);
 
   const copyToClipboard = () => {
     if (!bundle) return;
@@ -34,7 +39,8 @@ const CodeExporter: React.FC<Props> = ({ bundle }) => {
   const getFileName = () => {
     if (activeTab === 'ino') return 'src/main.cpp';
     if (activeTab === 'platformio') return 'platformio.ini';
-    return '.github/workflows/build.yml';
+    if (activeTab === 'workflow') return '.github/workflows/build.yml';
+    return 'README.md';
   };
 
   return (
@@ -42,6 +48,7 @@ const CodeExporter: React.FC<Props> = ({ bundle }) => {
       <div className="px-6 pt-6 pb-4 bg-zinc-800/40">
         <h3 className="text-xs font-black mono text-zinc-500 uppercase tracking-[0.2em] mb-4">Exportación de Proyecto</h3>
         <div className="flex gap-2">
+            <TabButton active={activeTab === 'readme'} label="Guía (README)" onClick={() => setActiveTab('readme')} />
             <TabButton active={activeTab === 'ino'} label="Código (C++)" onClick={() => setActiveTab('ino')} />
             <TabButton active={activeTab === 'platformio'} label="Config (INI)" onClick={() => setActiveTab('platformio')} />
             <TabButton active={activeTab === 'workflow'} label="GitHub (YAML)" onClick={() => setActiveTab('workflow')} />
@@ -60,20 +67,11 @@ const CodeExporter: React.FC<Props> = ({ bundle }) => {
 
       <div className="relative group flex-grow">
           <div className="max-h-[500px] overflow-auto p-6 mono text-[10px] leading-relaxed text-blue-300/80 bg-black/40 h-full scrollbar-hide">
-            <pre className="whitespace-pre">
+            <pre className="whitespace-pre-wrap">
               {bundle[activeTab]}
             </pre>
           </div>
           <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-zinc-900 pointer-events-none"></div>
-      </div>
-
-      <div className="p-6 bg-blue-900/10 border-t border-white/5">
-        <h4 className="text-[9px] font-black text-blue-400 uppercase mb-2 tracking-widest">Guía de Compilación en GitHub:</h4>
-        <div className="space-y-2 text-[10px] text-zinc-400 leading-normal font-medium">
-            <p>1. Crea un repo en GitHub y sube estos 3 archivos respetando las rutas indicadas arriba.</p>
-            <p>2. GitHub detectará el archivo en <code className="text-blue-300">.github/workflows</code> y ejecutará la compilación automáticamente.</p>
-            <p>3. Tras 2-3 minutos, descarga el <code className="text-green-400 font-bold">firmware.bin</code> desde la pestaña "Actions" de tu repositorio.</p>
-        </div>
       </div>
     </div>
   );

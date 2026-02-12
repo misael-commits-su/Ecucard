@@ -1,7 +1,5 @@
 {
   "name": "M5Cardputer ECU Prototyper",
   "description": "A world-class engineering workbench for designing and optimizing ECU simulator firmware for the M5Stack Cardputer. Includes visual dashboard simulation, keyboard mapping tools, and an AI-powered C++ code generator for ESP32-S3.",
-  "requestFramePermissions": [
-    "microphone"
-  ]
+  "requestFramePermissions": []
 }

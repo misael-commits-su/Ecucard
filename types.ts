@@ -44,4 +44,5 @@ export interface ProjectBundle {
   ino: string;
   platformio: string;
   workflow: string;
+  readme: string;
 }

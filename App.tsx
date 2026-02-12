@@ -120,19 +120,42 @@ const App: React.FC = () => {
 
   const generateProjectBundle = async () => {
     setIsGenerating(true);
-    addLog("Preparando bundle de compilación CI/CD...");
+    setProjectBundle(null);
+    addLog("Generando bundle de proyecto de producción...");
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const prompt = `
-        Genera un bundle de proyecto completo para M5Stack Cardputer (ESP32-S3) que sea compilable automáticamente mediante GitHub Actions.
-        
-        Debes devolver un JSON con tres propiedades:
-        1. "ino": Código C++ principal (Arduino/PlatformIO) que incluya BLE ELM327, soporte SD y gestión de teclado.
-        2. "platformio": Contenido de un archivo platformio.ini configurado para M5Cardputer con las librerías necesarias (NimBLE-Arduino, M5Cardputer, ArduinoJson).
-        3. "workflow": Contenido de un archivo YAML (.github/workflows/main.yml) que use 'platformio/platformio-action' para compilar el proyecto y subir el archivo .bin como un artifact de GitHub.
-        
-        Hardware: M5Cardputer (ESP32-S3, 8MB Flash).
-        Asegúrate de que el YAML de GitHub incluya pasos para instalar dependencias y exportar el firmware.bin.
+        Genera un bundle de proyecto de calidad de producción para M5Stack Cardputer (ESP32-S3), listo para compilar con GitHub Actions. El firmware debe ser robusto y no bloqueante.
+        Devuelve un JSON con cuatro propiedades: "ino", "platformio", "workflow", y "readme".
+
+        1.  **"ino" (src/main.cpp):**
+            *   Usa la librería \`M5Cardputer.h\`.
+            *   Inicializa el hardware con \`M5.begin()\`.
+            *   Usa \`M5.Keyboard.isPressed()\` en un \`loop()\` no bloqueante. NO USES delay().
+            *   Implementa un simulador ELM327 sobre BLE usando \`NimBLE-Arduino\`. Debe responder a los PIDs OBD2: RPM (0x0C) y Velocidad (0x0D).
+            *   Añade comentarios claros y una estructura de código profesional.
+
+        2.  **"platformio" (platformio.ini):**
+            *   Usa esta configuración exacta para garantizar la compatibilidad:
+                [env:m5stack-cardputer]
+                platform = espressif32
+                board = m5stack-cardputer
+                framework = arduino
+                lib_deps =
+                  m5stack/M5Cardputer
+                  h2zero/NimBLE-Arduino
+                  bblanchon/ArduinoJson@^6.0
+                monitor_speed = 115200
+
+        3.  **"workflow" (.github/workflows/build.yml):**
+            *   Usa \`platformio/platformio-action@v3\`.
+            *   El paso \`actions/upload-artifact@v3\` debe nombrar el artifact 'firmware-bin' y subir \`.pio/build/m5stack-cardputer/firmware.bin\`.
+
+        4.  **"readme" (README.md):**
+            *   Texto en Markdown con:
+                - Título: "Firmware ECU Prototyper para M5Cardputer".
+                - Sección "Flasheo del Binario".
+                - Sección "Guía de Troubleshooting" que indique: "Si la compilación falla, ve a la pestaña 'Actions' de tu repositorio en GitHub, haz clic en el workflow fallido y revisa los logs del paso 'Build project' para ver el error de compilación exacto."
       `;
 
       const response = await ai.models.generateContent({
@@ -143,20 +166,22 @@ const App: React.FC = () => {
             responseSchema: {
                 type: Type.OBJECT,
                 properties: {
-                    ino: { type: Type.STRING },
-                    platformio: { type: Type.STRING },
-                    workflow: { type: Type.STRING }
+                    ino: { type: Type.STRING, description: "Código C++ para main.cpp" },
+                    platformio: { type: Type.STRING, description: "Contenido del platformio.ini" },
+                    workflow: { type: Type.STRING, description: "Contenido del workflow YAML para GitHub Actions" },
+                    readme: { type: Type.STRING, description: "Contenido del README.md con instrucciones." }
                 },
-                required: ["ino", "platformio", "workflow"]
+                required: ["ino", "platformio", "workflow", "readme"]
             }
         }
       });
 
       const data = JSON.parse(response.text);
       setProjectBundle(data);
-      addLog("Bundle de GitHub Actions listo para exportar.");
+      addLog("Bundle de producción listo para exportar.");
     } catch (err) {
       addLog("Error de Generación: " + err);
+      console.error(err);
     } finally {
       setIsGenerating(false);
     }
@@ -232,7 +257,7 @@ const App: React.FC = () => {
                 </div>
                 <div className="p-5 flex-grow overflow-y-auto mono text-[10px] space-y-1.5 scrollbar-hide">
                     {log.map((line, i) => (
-                        <div key={i} className={`flex gap-3 ${line.includes('GitHub') ? 'text-blue-400' : 'text-zinc-500'}`}>
+                        <div key={i} className={`flex gap-3 ${line.includes('GitHub') ? 'text-blue-400' : line.includes('producción') ? 'text-green-400' : 'text-zinc-500'}`}>
                             <span className="opacity-30">[{i.toString().padStart(2, '0')}]</span>
                             <span>{line}</span>
                         </div>
